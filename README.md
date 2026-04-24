@@ -90,8 +90,11 @@ range(a, b) = (a . range(a+1, b))
 
 ## 7. 참고문헌
 
-- Programming Languages, Spring 2026, Prof. Woo, `02_mkrange`
-- Introduction to Scheme (Part 2), School of CSE, PNU, G. Woo
+[^1] 부산대학교 CSE 프로그래밍언어론 강의자료, Introduction to Scheme (Part 1).
+
+[^2] 부산대학교 CSE 프로그래밍언어론 강의자료, Introduction to Scheme (Part 2).
+
+[^3] woogyun, mowkow, GitHub repository.
 
 
 
