@@ -1,183 +1,51 @@
-# Assignment 8: Prolog로 작성한 child
+```code
+import sys
 
-학번: 202255601  
-이름: 전준  
+n = int(input())
+min_component = list(map(int, input().split()))
 
----
+gradients = []
+for i in range(n):
+    gradients.append(list(map(int, input().split())))
 
-## 1. 문제
+min_cost = float('inf')
+max_total_nutrients = -1
+best_indices = []
+selected = []
 
-이번 과제의 목표는 주어진 가족 관계를 Prolog 프로그램으로 표현하고, 사용자가 입력한 사람의 자식이 누구인지 출력하는 프로그램을 작성하는 것이다.
+def dfs(idx, p, f, s, v, current_cost):
+    global min_cost, max_total_nutrients, best_indices
 
-먼저 `father(X, Y)`와 `mother(X, Y)` 술어를 이용하여 `X`가 `Y`의 아버지인지, 어머니인지를 사실로 저장한다.  
-그다음 이 두 술어를 바탕으로 다음 관계를 정의한다.
+    if current_cost > min_cost:
+        return
 
-- `parent(X, Y)` : `X`는 `Y`의 부모이다.
-- `child(X, Y)` : `X`는 `Y`의 자식이다.
-- `grandParent(X, Y)` : `X`는 `Y`의 조부모이다.
+    if idx == n:
+        if p >= min_component[0] and f >= min_component[1] and s >= min_component[2] and v >= min_component[3]:
+            total_nutrients = p + f + s + v
+            if (current_cost < min_cost or
+                    (current_cost == min_cost and total_nutrients > max_total_nutrients) or
+                    (current_cost == min_cost and total_nutrients == max_total_nutrients and (
+                            not best_indices or selected < best_indices))):
+                min_cost = current_cost
+                max_total_nutrients = total_nutrients
+                best_indices = selected[:]
+        return
 
-프로그램은 표준 입력으로 사람 이름 하나를 입력받는다.  
-입력한 사람의 자식이 존재하면 그 자식의 이름을 출력하고, 자식이 존재하지 않으면 `none`을 출력한다.
+    selected.append(idx + 1)
+    dfs(idx + 1,
+        p + gradients[idx][0],
+        f + gradients[idx][1],
+        s + gradients[idx][2],
+        v + gradients[idx][3],
+        current_cost + gradients[idx][4])
 
-예를 들어 입력이 `john.`이면 `jim`을 출력하고, 입력이 `jim.`이면 자식이 없으므로 `none`을 출력한다.
+    selected.pop()
+    dfs(idx + 1, p, f, s, v, current_cost)
 
----
+dfs(0, 0, 0, 0, 0, 0)
 
-## 2. 전략
-
-먼저 과제에서 제시한 가족 관계를 Prolog의 사실로 표현하였다.
-
-```prolog
-father(john, jim).
-mother(jane, jim).
-
-father(jack, john).
-mother(mary, john).
-
-father(adam, jane).
-mother(eve, jane).
-
-father(louis, alan).
-mother(violet, bob).
-
-father(bob, chris).
-father(alan, mike).
+if not best_indices:
+    print(0)
+else:
+    print(*(best_indices))
 ```
-
-이후 아버지 또는 어머니인 경우를 모두 부모 관계로 볼 수 있도록 `parent` 술어를 정의하였다.
-
-```prolog
-parent(X, Y) :- father(X, Y).
-parent(X, Y) :- mother(X, Y).
-```
-
-자식 관계는 부모 관계의 인수 순서를 반대로 하여 정의하였다.  
-즉, `X`가 `Y`의 자식이라는 것은 `Y`가 `X`의 부모라는 뜻이다.
-
-```prolog
-child(X, Y) :- parent(Y, X).
-```
-
-조부모 관계는 어떤 사람 `X`가 `Z`의 부모이고, `Z`가 `Y`의 부모이면 성립하도록 작성하였다.
-
-```prolog
-grandParent(X, Y) :- parent(X, Z), parent(Z, Y).
-```
-
-마지막으로 `main`에서는 사용자 입력을 받은 뒤, 입력한 사람의 자식을 찾는다.  
-자식이 존재하면 그 이름을 출력하고, 존재하지 않으면 `none`을 출력하도록 하였다.
-
-```prolog
-main :-
-    read(X),
-    ( child(Y, X) ->
-        writeln(Y)
-    ;
-        writeln(none)
-    ),
-    halt.
-```
-
-전체적인 실행 흐름은 다음과 같다.
-
-1. 사람 이름을 입력받는다.
-2. `child(Y, X)`를 이용해 입력한 사람 `X`의 자식 `Y`를 찾는다.
-3. 자식이 존재하면 이름을 출력한다.
-4. 자식이 존재하지 않으면 `none`을 출력한다.
-5. 프로그램을 종료한다.
-
----
-
-## 3. 언어의 기능
-
-이번 프로그램 구현에서 가장 도움이 된 Prolog의 기능은 **사실과 규칙을 이용한 관계 표현 방식**이었다.
-
-일반적인 절차형 언어에서는 가족 관계를 배열이나 조건문으로 직접 처리해야 하지만, Prolog에서는 관계 자체를 사실과 규칙으로 간단하게 표현할 수 있다.
-
-예를 들어 다음 코드는 아버지이거나 어머니이면 부모라는 의미를 나타낸다.
-
-```prolog
-parent(X, Y) :- father(X, Y).
-parent(X, Y) :- mother(X, Y).
-```
-
-또한 Prolog의 **논리 변수**와 **자동 탐색 기능**도 매우 유용했다.  
-예를 들어 `child(Y, john)`이라는 질의를 하면, Prolog가 조건을 만족하는 `Y`를 스스로 찾아준다.
-
-이번 프로그램에서는 자식이 존재하는 경우와 존재하지 않는 경우를 나누기 위해 조건 분기 표현도 사용하였다.
-
-```prolog
-( child(Y, X) ->
-    writeln(Y)
-;
-    writeln(none)
-)
-```
-
-이 구조를 이용하면 `child(Y, X)`가 성립할 때는 자식 이름을 출력하고, 성립하지 않을 때는 `none`을 출력할 수 있다.
-
-또한 Prolog는 자신이 알고 있는 사실과 규칙으로 증명할 수 없는 것은 거짓으로 간주한다.  
-따라서 어떤 사람의 자식 관계를 찾을 수 없다면, 해당 인물의 자식이 없다고 판단하여 `none`을 출력할 수 있다.
-
----
-
-## 4. 토의
-
-이번 프로그램은 `father`와 `mother` 관계를 먼저 사실로 작성하고, 이를 바탕으로 `parent`, `child`, `grandParent` 관계를 규칙으로 정의하는 방식으로 구현하였다.
-
-같은 일을 구현하는 다른 방법으로는 처음부터 `parent` 관계만 직접 작성하는 방법이 있다.
-
-```prolog
-parent(john, jim).
-parent(jane, jim).
-parent(jack, john).
-parent(mary, john).
-```
-
-이 방식은 코드가 조금 짧아질 수 있지만, 누가 아버지이고 누가 어머니인지에 대한 정보가 사라진다는 단점이 있다.
-
-또 다른 방법으로는 `child` 관계를 직접 사실로 작성하는 방법도 있다.
-
-```prolog
-child(jim, john).
-child(jim, jane).
-```
-
-하지만 이 경우 이미 존재하는 부모 관계와 같은 내용을 다시 한 번 작성해야 하므로 중복이 생긴다.  
-또한 가족 관계가 많아질수록 관리하기 어려워진다.
-
-따라서 기본적인 관계만 사실로 저장하고, 그 관계에서 유도할 수 있는 내용은 규칙으로 정의하는 방식이 더 효율적이라고 생각한다.
-
----
-
-## 5. 결론
-
-이번 과제를 통해 Prolog는 일반적인 절차형 프로그래밍 언어와 다른 방식으로 문제를 해결한다는 점을 배웠다.  
-C나 Python에서는 원하는 결과를 얻기 위해 반복문과 조건문을 직접 설계하는 경우가 많지만, Prolog에서는 무엇이 사실이고 어떤 규칙이 성립하는지를 먼저 작성하면 언어가 조건에 맞는 답을 찾아준다.
-
-가장 흥미로웠던 부분은 `parent` 관계를 한 번 정의한 뒤, 이를 이용하여 `child`와 `grandParent` 같은 새로운 관계를 간단하게 만들 수 있었다는 점이다.  
-기존 관계를 조합하여 새로운 의미를 표현할 수 있다는 점이 인상적이었다.
-
-가장 주의가 필요했던 부분은 술어의 인수 순서였다.  
-예를 들어
-
-```prolog
-parent(X, Y)
-```
-
-는 `X`가 부모이고 `Y`가 자식이라는 뜻이지만,
-
-```prolog
-child(X, Y)
-```
-
-는 `X`가 자식이고 `Y`가 부모라는 뜻으로 사용하였다.  
-이 순서를 헷갈리면 원하는 결과가 나오지 않기 때문에 술어를 정의할 때 의미를 정확히 확인해야 했다.
-
-이번 과제를 통해 Prolog의 사실, 규칙, 논리 변수, 관계 추론 방식에 대해 익힐 수 있었고, 특히 간단한 규칙만으로 여러 관계를 표현할 수 있다는 점이 가장 인상 깊었다.
-
----
-
-## 참고 문헌
-
-[^1] 부산대학교 CSE 프로그래밍언어론 강의자료, prolog(Part 1).
